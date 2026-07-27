@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Production build outputs
+dist/
+build/
+
+# Environment variables & secrets (CRITICAL for assignment guidelines)
+.env
+
+
+# AI / IDE tooling folders
+skills-lock.json
+.agents/
+.claude/
+.windsurf/
+.vscode/
+.idea/
+
+
+# Prisma Generated Client (if outputting inside src or root generated)
+/src/generated/
+/generated/
+
+# Uploads / Media storage (local file uploads)
+public/uploads/
+uploads/
+
+# Logs and OS files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
