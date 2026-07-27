@@ -5,7 +5,7 @@ import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler';
-import testRoutes from './modules/_test/test.routes';
+
 
 
 export const app = express();
@@ -22,7 +22,7 @@ app.get('/health', (_req, res) => {
 
 // Module routes will be mounted here 
 // app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/_test', testRoutes);
+
 
 app.use(notFoundHandler);
 app.use(errorHandler);

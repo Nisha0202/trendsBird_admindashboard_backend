@@ -1,0 +1,23 @@
+model PermissionGroup {
+  id          String       @id @default(uuid())
+  name        String       @unique // module name, e.g. "Product"
+  description String?
+  permissions Permission[]
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@map("permission_groups")
+}
+
+model Permission {
+  id          String          @id @default(uuid())
+  name        String          @unique // e.g. "product:create", normalised lower-case
+  description String?
+  groupId     String          @map("group_id")
+  group       PermissionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  roles       RolePermission[]
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  @@map("permissions")
+}

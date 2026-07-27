@@ -7,7 +7,3 @@ datasource db {
   provider = "postgresql"
 }
 
-model ConnectionTest {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-}
