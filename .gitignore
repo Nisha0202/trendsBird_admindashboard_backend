@@ -8,6 +8,8 @@ build/
 # Environment variables & secrets (CRITICAL for assignment guidelines)
 .env
 
+# Prisma Generated Client
+generated/
 
 # AI / IDE tooling folders
 skills-lock.json
