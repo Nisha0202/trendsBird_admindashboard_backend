@@ -6,8 +6,9 @@ import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler';
 import authRoutes from './modules/auth/auth.routes';
+import { authGuard } from './middleware/authGuard';
 
-
+import permissionRoutes from './modules/permission/permission.routes';
 export const app = express();
 
 app.use(helmet());
@@ -19,9 +20,12 @@ app.use(morgan(env.nodeEnv === 'development' ? 'dev' : 'combined'));
 app.get('/health', (_req, res) => {
   res.json({ success: true, data: { status: 'ok', timestamp: new Date().toISOString() } });
 });
+app.use(authGuard); 
 
 // Module routes will be mounted here 
 app.use('/api/v1/auth', authRoutes);
+
+app.use('/api/v1/permissions', permissionRoutes);
 
 
 app.use(notFoundHandler);
