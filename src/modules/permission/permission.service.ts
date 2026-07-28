@@ -38,8 +38,37 @@ export async function createGroupWithActions(input: CreatePermissionGroupInput) 
   });
 }
 
+// export async function listGroups(query: ListPermissionsQuery) {
+//   const { search, page, limit } = query;
+
+//   const where = search
+//     ? {
+//         OR: [
+//           { name: { contains: search, mode: 'insensitive' as const } },
+//           { permissions: { some: { name: { contains: search, mode: 'insensitive' as const } } } },
+//         ],
+//       }
+//     : {};
+
+//   const [groups, total] = await prisma.$transaction([
+//     prisma.permissionGroup.findMany({
+//       where,
+//       include: { permissions: { orderBy: { name: 'asc' } } },
+//       orderBy: { name: 'asc' },
+//       skip: (page - 1) * limit,
+//       take: limit,
+//     }),
+//     prisma.permissionGroup.count({ where }),
+//   ]);
+
+//   return { groups, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+// }
+
 export async function listGroups(query: ListPermissionsQuery) {
-  const { search, page, limit } = query;
+  // Provide defaults so skip/take never receive NaN or undefined
+  const search = query.search;
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
 
   const where = search
     ? {

@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler';
 import authRoutes from './modules/auth/auth.routes';
+import roleRoutes from './modules/role/role.routes';
+import userRoutes from './modules/user/user.routes';
 import { authGuard } from './middleware/authGuard';
 
 import permissionRoutes from './modules/permission/permission.routes';
@@ -26,6 +28,8 @@ app.use(authGuard);
 app.use('/api/v1/auth', authRoutes);
 
 app.use('/api/v1/permissions', permissionRoutes);
+app.use('/api/v1/roles', roleRoutes);
+app.use('/api/v1/users', userRoutes);
 
 
 app.use(notFoundHandler);

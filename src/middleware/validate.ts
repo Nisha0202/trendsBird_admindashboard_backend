@@ -19,8 +19,17 @@ export function validate(schema: ZodSchema, target: Target = 'body') {
       }));
       return next(ApiError.unprocessable('Validation failed', details));
     }
- 
-    req[target] = result.data;
+
+    if (target === 'query') {
+      // req.query is read-only in Express/Node; clear old keys and copy coerced Zod values
+      for (const key of Object.keys(req.query)) {
+        delete (req.query as Record<string, any>)[key];
+      }
+      Object.assign(req.query, result.data);
+    } else {
+      req[target] = result.data;
+    }
+
     next();
   };
 }
