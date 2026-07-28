@@ -12,6 +12,8 @@ import mediaRoutes from './modules/media/media.routes';
 import brandRoutes from './modules/brand/brand.routes';
 import categoryRoutes from './modules/category/category.routes';
 import attributeRoutes from './modules/attribute/attribute.routes';
+import productRoutes from './modules/product/product.routes';
+
 import { authGuard } from './middleware/authGuard';
 import multer from 'multer';
 import permissionRoutes from './modules/permission/permission.routes';
@@ -38,6 +40,8 @@ app.use('/api/v1/media', mediaRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/brands', brandRoutes);
 app.use('/api/v1/attributes', attributeRoutes);
+app.use('/api/v1/products', productRoutes);
+
 // after all routes, before notFoundHandler/errorHandler:
 app.use((err: any, _req: any, res: any, next: any) => {
   if (err instanceof multer.MulterError) {

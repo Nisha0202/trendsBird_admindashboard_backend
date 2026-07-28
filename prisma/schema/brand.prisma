@@ -1,13 +1,14 @@
 model Brand {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  slug        String   @unique
-  logoId      String?  @map("logo_id")
-  logo        Media?   @relation(fields: [logoId], references: [id], onDelete: SetNull)
-  status      Boolean  @default(true)
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  logoId      String?   @map("logo_id")
+  logo        Media?    @relation(fields: [logoId], references: [id], onDelete: SetNull)
+  status      Boolean   @default(true)
   description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  products    Product[]
 
   @@map("brands")
 }
@@ -21,28 +22,30 @@ enum AttributeType {
 }
 
 model Attribute {
-  id        String            @id @default(uuid())
-  name      String            @unique
-  slug      String            @unique
+  id        String           @id @default(uuid())
+  name      String           @unique
+  slug      String           @unique
   type      AttributeType
   values    AttributeValue[]
-  createdAt DateTime          @default(now()) @map("created_at")
-  updatedAt DateTime          @updatedAt @map("updated_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
 
   @@map("attributes")
 }
 
 model AttributeValue {
-  id               String    @id @default(uuid())
+  id               String                  @id @default(uuid())
   value            String
   slug             String
-  referenceValue   String?   @map("reference_value") // e.g. hex code for a colour swatch
-  referenceMediaId String?   @map("reference_media_id") // for an image swatch
-  referenceMedia   Media?    @relation(fields: [referenceMediaId], references: [id], onDelete: SetNull)
-  attributeId      String    @map("attribute_id")
-  attribute        Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  referenceValue   String?                 @map("reference_value") // e.g. hex code for a colour swatch
+  referenceMediaId String?                 @map("reference_media_id") // for an image swatch
+  referenceMedia   Media?                  @relation(fields: [referenceMediaId], references: [id], onDelete: SetNull)
+  attributeId      String                  @map("attribute_id")
+  attribute        Attribute               @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+  variantValues    VariantAttributeValue[]
+  productMedia     ProductMedia[]
 
   @@unique([attributeId, slug])
   @@unique([attributeId, value])

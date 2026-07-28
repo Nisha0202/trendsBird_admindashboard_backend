@@ -23,24 +23,26 @@ model Media {
   brandsLogo      Brand[]
   attributeValues AttributeValue[]
   categories      Category[]
+  productMedia    ProductMedia[]
 
   @@map("media")
 }
 
 model Category {
-  id          String     @id @default(uuid())
+  id          String            @id @default(uuid())
   name        String
-  slug        String     @unique
+  slug        String            @unique
   description String?
-  imageId     String?    @map("image_id")
-  image       Media?     @relation(fields: [imageId], references: [id], onDelete: SetNull)
-  parentId    String?    @map("parent_id")
-  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children    Category[] @relation("CategoryTree")
-  active      Boolean    @default(true)
-  sortOrder   Int        @default(0) @map("sort_order")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  imageId     String?           @map("image_id")
+  image       Media?            @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  parentId    String?           @map("parent_id")
+  parent      Category?         @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Category[]        @relation("CategoryTree")
+  active      Boolean           @default(true)
+  sortOrder   Int               @default(0) @map("sort_order")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  products    ProductCategory[]
 
   @@index([parentId])
   @@map("categories")

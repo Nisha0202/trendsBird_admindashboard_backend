@@ -71,21 +71,6 @@ export async function updateAttribute(id: string, input: UpdateAttributeInput) {
     });
 }
 
-export async function deleteAttribute(id: string) {
-    const attribute = await prisma.attribute.findUnique({ where: { id }, include: { values: true } });
-    if (!attribute) throw ApiError.notFound('Attribute not found');
-
-    // Placeholder until task 20: real check is "no variant references any of
-    // this attribute's values" via VariantAttributeValue. Wired in task 20.
-    const usedByVariant = false;
-    if (usedByVariant) {
-        throw ApiError.conflict('Cannot delete: attribute is used by one or more product variants');
-    }
-
-    await prisma.attribute.delete({ where: { id } }); // cascades its values
-    return { deleted: true };
-}
-
 export async function addValue(attributeId: string, input: CreateValueInput) {
     const attribute = await prisma.attribute.findUnique({ where: { id: attributeId } });
     if (!attribute) throw ApiError.notFound('Attribute not found');
@@ -128,16 +113,35 @@ export async function updateValue(attributeId: string, valueId: string, input: U
     });
 }
 
+
+
+export async function deleteAttribute(id: string) {
+  const attribute = await prisma.attribute.findUnique({
+    where: { id },
+    include: { values: { include: { _count: { select: { variantValues: true } } } } },
+  });
+  if (!attribute) throw ApiError.notFound('Attribute not found');
+
+  const usedByVariant = attribute.values.some((v) => v._count.variantValues > 0);
+  if (usedByVariant) {
+    throw ApiError.conflict('Cannot delete: attribute is used by one or more product variants');
+  }
+
+  await prisma.attribute.delete({ where: { id } });
+  return { deleted: true };
+}
+
 export async function deleteValue(attributeId: string, valueId: string) {
-    const value = await prisma.attributeValue.findFirst({ where: { id: valueId, attributeId } });
-    if (!value) throw ApiError.notFound('Attribute value not found');
+  const value = await prisma.attributeValue.findFirst({
+    where: { id: valueId, attributeId },
+    include: { _count: { select: { variantValues: true } } },
+  });
+  if (!value) throw ApiError.notFound('Attribute value not found');
 
-    // Placeholder until task 20: check VariantAttributeValue usage.
-    const usedByVariant = false;
-    if (usedByVariant) {
-        throw ApiError.conflict('Cannot delete: value is used by one or more product variants');
-    }
+  if (value._count.variantValues > 0) {
+    throw ApiError.conflict('Cannot delete: value is used by one or more product variants');
+  }
 
-    await prisma.attributeValue.delete({ where: { id: valueId } });
-    return { deleted: true };
+  await prisma.attributeValue.delete({ where: { id: valueId } });
+  return { deleted: true };
 }

@@ -94,43 +94,33 @@ export async function updateBrand(id: string, input: UpdateBrandInput) {
 // }
 
 // TEMPORARY until task 20 adds Product.brandId:
-export async function deleteBrand(id: string) {
-  const brand = await prisma.brand.findUnique({ where: { id } });
-  if (!brand) throw ApiError.notFound('Brand not found');
-  await prisma.brand.delete({ where: { id } });
-  return { deleted: true };
-}
-
-
-
 
 
 export async function listBrands(query: ListBrandsQuery) {
-  const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 20;
-
-  // Ensure status is explicitly converted to boolean if it arrives as string
-  const status =
-    typeof query.status === 'string'
-      ? query.status === 'true'
-      : query.status;
-
+  const { search, status, page, limit } = query;
   const where = {
     ...(status !== undefined ? { status } : {}),
-    ...(query.search ? { name: { contains: query.search, mode: 'insensitive' as const } } : {}),
+    ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {}),
   };
-
   const [brands, total] = await prisma.$transaction([
     prisma.brand.findMany({
       where,
-      include: { logo: true },
+      include: { logo: true, _count: { select: { products: true } } },
       orderBy: { name: 'asc' },
       skip: (page - 1) * limit,
       take: limit,
     }),
     prisma.brand.count({ where }),
   ]);
-
   return { brands, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
 }
 
+export async function deleteBrand(id: string) {
+  const brand = await prisma.brand.findUnique({ where: { id }, include: { _count: { select: { products: true } } } });
+  if (!brand) throw ApiError.notFound('Brand not found');
+  if (brand._count.products > 0) {
+    throw ApiError.conflict(`Cannot delete: ${brand._count.products} product(s) still reference this brand`);
+  }
+  await prisma.brand.delete({ where: { id } });
+  return { deleted: true };
+}
