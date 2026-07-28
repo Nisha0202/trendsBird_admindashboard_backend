@@ -4,24 +4,25 @@ enum MediaType {
 }
 
 model Media {
-  id           String    @id @default(uuid())
-  fileName     String    @map("file_name")
-  storedPath   String    @map("stored_path")
-  publicUrl    String    @map("public_url")
-  mimeType     String    @map("mime_type")
-  type         MediaType
-  size         Int
-  width        Int?
-  height       Int?
-  thumbnailUrl String?   @map("thumbnail_url")
-  altText      String?   @map("alt_text")
-  title        String?
-  uploadedById String    @map("uploaded_by_id")
-  uploadedBy   User      @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-
-  categories Category[]
+  id              String           @id @default(uuid())
+  fileName        String           @map("file_name")
+  storedPath      String           @map("stored_path")
+  publicUrl       String           @map("public_url")
+  mimeType        String           @map("mime_type")
+  type            MediaType
+  size            Int
+  width           Int?
+  height          Int?
+  thumbnailUrl    String?          @map("thumbnail_url")
+  altText         String?          @map("alt_text")
+  title           String?
+  uploadedById    String           @map("uploaded_by_id")
+  uploadedBy      User             @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  brandsLogo      Brand[]
+  attributeValues AttributeValue[]
+  categories      Category[]
 
   @@map("media")
 }

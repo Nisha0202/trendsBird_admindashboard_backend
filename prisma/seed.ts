@@ -1,5 +1,13 @@
+import 'dotenv/config'; // Loads .env into process.env
 import bcrypt from 'bcrypt';
 import { prisma } from '../src/config/prisma';
+
+// Environment variables with fallback defaults
+const SUPER_ADMIN_EMAIL = process.env.SEED_SUPER_ADMIN_EMAIL ?? 'admin@example.com';
+const SUPER_ADMIN_PASSWORD = process.env.SEED_SUPER_ADMIN_PASSWORD ?? 'SuperAdmin123!';
+
+const CATALOG_USER_EMAIL = process.env.SEED_CATALOG_USER_EMAIL ?? 'catalog@example.com';
+const CATALOG_USER_PASSWORD = process.env.SEED_CATALOG_USER_PASSWORD ?? 'Catalog123!';
 
 const MODULES: Record<string, string[]> = {
   Dashboard: ['watch'],
@@ -13,7 +21,6 @@ const MODULES: Record<string, string[]> = {
   Product: ['watch', 'create', 'read', 'update', 'delete'],
 };
 
-// Catalog Manager gets everything EXCEPT Permission/Role/User — used to prove 403s.
 const CATALOG_MODULES = ['Dashboard', 'Media', 'Category', 'Brand', 'Attribute', 'Product'];
 
 async function main() {
@@ -52,19 +59,19 @@ async function main() {
     });
   }
 
-  const superPasswordHash = await bcrypt.hash('SuperAdmin123!', 10);
+  const superPasswordHash = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 10);
   const superUser = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
+    where: { email: SUPER_ADMIN_EMAIL },
     update: { passwordHash: superPasswordHash, roleId: superRole.id, active: true },
     create: {
       name: 'Super Admin',
-      email: 'admin@example.com',
+      email: SUPER_ADMIN_EMAIL,
       passwordHash: superPasswordHash,
       roleId: superRole.id,
     },
   });
 
-  // --- Catalog Manager: deliberately limited, no permission/role/user access ---
+  // --- Catalog Manager: deliberately limited ---
   const catalogRole = await prisma.role.upsert({
     where: { name: 'Catalog Manager' },
     update: {},
@@ -80,21 +87,21 @@ async function main() {
     });
   }
 
-  const catalogPasswordHash = await bcrypt.hash('Catalog123!', 10);
+  const catalogPasswordHash = await bcrypt.hash(CATALOG_USER_PASSWORD, 10);
   const catalogUser = await prisma.user.upsert({
-    where: { email: 'catalog@example.com' },
+    where: { email: CATALOG_USER_EMAIL },
     update: { passwordHash: catalogPasswordHash, roleId: catalogRole.id, active: true },
     create: {
       name: 'Catalog User',
-      email: 'catalog@example.com',
+      email: CATALOG_USER_EMAIL,
       passwordHash: catalogPasswordHash,
       roleId: catalogRole.id,
     },
   });
 
-  console.log('Seed complete.');
-  console.log('Super admin: admin@example.com / SuperAdmin123! ->', superUser.id);
-  console.log('Catalog user: catalog@example.com / Catalog123! ->', catalogUser.id);
+  // console.log('Seed complete.');
+  // console.log(`Super admin: ${SUPER_ADMIN_EMAIL} ->`, superUser.id);
+  // console.log(`Catalog user: ${CATALOG_USER_EMAIL} ->`, catalogUser.id);
 }
 
 main()
