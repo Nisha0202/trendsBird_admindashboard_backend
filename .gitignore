@@ -7,6 +7,7 @@ build/
 
 # Environment variables & secrets (CRITICAL for assignment guidelines)
 .env
+prisma/seed.ts
 
 # Prisma Generated Client
 generated/

@@ -26,4 +26,7 @@ export class ApiError extends Error {
   static unprocessable(msg = 'Unprocessable entity', details?: unknown) {
     return new ApiError(422, msg, details);
   }
+  static internal(message = 'Internal server error') {
+    return new ApiError(500, message);
+  }
 }

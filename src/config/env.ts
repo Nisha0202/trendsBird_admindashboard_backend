@@ -17,4 +17,16 @@ export const env = {
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
     refreshExpiresInDays: parseInt(process.env.REFRESH_TOKEN_EXPIRES_DAYS ?? '30', 10),
   },
+
+  supabase: {
+    url: required('SUPABASE_URL'),
+    serviceRoleKey: required('SUPABASE_SERVICE_ROLE_KEY'),
+    mediaBucket: process.env.SUPABASE_MEDIA_BUCKET ?? 'media',
+  },
+  upload: {
+    maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB ?? '10', 10),
+  },
+
+
+
 };
