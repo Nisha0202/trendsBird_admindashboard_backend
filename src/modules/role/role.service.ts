@@ -46,32 +46,25 @@ export async function createRole(input: CreateRoleInput) {
     }
   }
 
- return prisma.role.create({
-  data: {
-    name: input.name,
-    description: input.description ?? null,
-    status: input.status,
-    permissions: {
-      create: permissionIds.map((permissionId) => ({
-        permissionId,
-      })),
-    },
-  },
-  include: {
-    permissions: {
-      include: {
-        permission: true,
+  return prisma.role.create({
+    data: {
+      name: input.name,
+      description: input.description ?? null,
+      status: input.status,
+      permissions: {
+        create: permissionIds.map((permissionId) => ({
+          permissionId,
+        })),
       },
     },
-  },
-});
-
-
-
-
-
-
-
+    include: {
+      permissions: {
+        include: {
+          permission: true,
+        },
+      },
+    },
+  });
 }
 
 export async function listRoles(query: ListRolesQuery) {
@@ -85,7 +78,15 @@ export async function listRoles(query: ListRolesQuery) {
   const [roles, total] = await prisma.$transaction([
     prisma.role.findMany({
       where,
-      include: { _count: { select: { users: true } } },
+      include: {
+        _count: {
+          select: {
+            users: {
+              where: { deletedAt: null }, // Only count ACTIVE users in role list
+            },
+          },
+        },
+      },
       orderBy: { name: 'asc' },
       skip: (page - 1) * limit,
       take: limit,
@@ -99,7 +100,16 @@ export async function listRoles(query: ListRolesQuery) {
 export async function getRoleById(id: string) {
   const role = await prisma.role.findUnique({
     where: { id },
-    include: { permissions: { include: { permission: true } }, _count: { select: { users: true } } },
+    include: {
+      permissions: { include: { permission: true } },
+      _count: {
+        select: {
+          users: {
+            where: { deletedAt: null }, // Only count ACTIVE users
+          },
+        },
+      },
+    },
   });
   if (!role) throw ApiError.notFound('Role not found');
   return role;
@@ -112,8 +122,7 @@ export async function updateRole(id: string, input: UpdateRoleInput) {
   const currentlyHasGuard = role.permissions.some((rp) => rp.permission.name === GUARD_PERMISSION_NAME);
   const willRemoveGuard =
     guardPermission != null &&
-    ((input.removePermissionIds?.includes(guardPermission.id) ?? false) ||
-      input.status === false);
+    ((input.removePermissionIds?.includes(guardPermission.id) ?? false) || input.status === false);
 
   const willStillHaveIt = currentlyHasGuard && !willRemoveGuard;
 
@@ -160,11 +169,19 @@ export async function updateRole(id: string, input: UpdateRoleInput) {
 }
 
 export async function deleteRole(id: string) {
-  const role = await prisma.role.findUnique({ where: { id }, include: { _count: { select: { users: true } } } });
+  const role = await prisma.role.findUnique({ where: { id } });
   if (!role) throw ApiError.notFound('Role not found');
 
-  if (role._count.users > 0) {
-    throw ApiError.conflict(`Cannot delete role "${role.name}" — ${role._count.users} user(s) still hold it`);
+  // Check if any ACTIVE (non-deleted) users hold this role
+  const activeUserCount = await prisma.user.count({
+    where: {
+      roleId: id,
+      deletedAt: null,
+    },
+  });
+
+  if (activeUserCount > 0) {
+    throw ApiError.conflict(`Cannot delete role "${role.name}" — ${activeUserCount} active user(s) still hold it`);
   }
 
   const guardPermission = await prisma.permission.findUnique({ where: { name: GUARD_PERMISSION_NAME } });
@@ -178,6 +195,23 @@ export async function deleteRole(id: string) {
     await assertRoleManagementSurvives(id, false);
   }
 
-  await prisma.role.delete({ where: { id } });
-  return { deleted: true };
+  return prisma.$transaction(async (tx) => {
+    // 1. Delete or unassign soft-deleted users linked to this role so foreign key constraint passes
+    await tx.user.deleteMany({
+      where: {
+        roleId: id,
+        deletedAt: { not: null },
+      },
+    });
+
+    // 2. Delete role-permission relations
+    await tx.rolePermission.deleteMany({
+      where: { roleId: id },
+    });
+
+    // 3. Delete the role itself
+    await tx.role.delete({ where: { id } });
+
+    return { deleted: true };
+  });
 }
