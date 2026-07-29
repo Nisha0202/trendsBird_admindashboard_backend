@@ -15,15 +15,15 @@ export async function createUser(input: CreateUserInput) {
   const passwordHash = await bcrypt.hash(input.password, 10);
 
   const user = await prisma.user.create({
-     data: {
-    name: input.name,
-    email: input.email,
-    passwordHash,
-    phone: input.phone ?? null,
-    gender: input.gender ?? null,
-    roleId: input.roleId,
-    active: input.active,
-  },
+    data: {
+      name: input.name,
+      email: input.email,
+      passwordHash,
+      phone: input.phone ?? null,
+      gender: input.gender ?? null,
+      roleId: input.roleId,
+      active: input.active,
+    },
     include: { role: true },
   });
 
@@ -31,12 +31,26 @@ export async function createUser(input: CreateUserInput) {
 }
 
 export async function listUsers(query: ListUsersQuery) {
-  const { search, roleId, active, page, limit } = query;
+  const { search, roleId, active, page = 1, limit = 10 } = query;
+
+  // 1. Safely normalize boolean types (handles string "true"/"false" or boolean primitives)
+  let activeBool: boolean | undefined = undefined;
+  if (typeof active === 'boolean') {
+    activeBool = active;
+  } else if (typeof active === 'string') {
+    if (active === 'true') activeBool = true;
+    if (active === 'false') activeBool = false;
+  }
+
+  // 2. Safely normalize numbers for pagination
+  const pageNum = Math.max(1, Number(page) || 1);
+  const limitNum = Math.max(1, Number(limit) || 10);
+  const skip = (pageNum - 1) * limitNum;
 
   const where = {
     deletedAt: null,
     ...(roleId ? { roleId } : {}),
-    ...(active !== undefined ? { active } : {}),
+    ...(activeBool !== undefined ? { active: activeBool } : {}),
     ...(search
       ? {
           OR: [
@@ -52,13 +66,21 @@ export async function listUsers(query: ListUsersQuery) {
       where,
       include: { role: { select: { id: true, name: true } } },
       orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
+      skip,
+      take: limitNum,
     }),
     prisma.user.count({ where }),
   ]);
 
-  return { users: users.map(toSafeUser), pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+  return {
+    users: users.map(toSafeUser),
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    },
+  };
 }
 
 export async function getUserById(id: string) {
@@ -71,9 +93,6 @@ export async function updateUser(id: string, input: UpdateUserInput, requesterId
   const user = await prisma.user.findFirst({ where: { id, deletedAt: null } });
   if (!user) throw ApiError.notFound('User not found');
 
-  // Self-escalation prevention: a user can never change their own role,
-  // regardless of what value is sent — including "no-op" changes to the
-  // same roleId, since that still confirms/reinforces self-granted access.
   if (id === requesterId && input.roleId !== undefined) {
     throw ApiError.forbidden('You cannot change your own role');
   }
@@ -96,8 +115,6 @@ export async function updateUser(id: string, input: UpdateUserInput, requesterId
     include: { role: true },
   });
 
-  // If deactivating, kill all outstanding refresh tokens immediately —
-  // don't wait for them to try (and fail) to refresh.
   if (input.active === false) {
     await prisma.refreshToken.updateMany({
       where: { userId: id, revoked: false },
