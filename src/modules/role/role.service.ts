@@ -4,14 +4,8 @@ import { CreateRoleInput, UpdateRoleInput, ListRolesQuery } from './role.schema'
 
 const GUARD_PERMISSION_NAME = 'role:update';
 
-/**
- * Ensures at least one active role would still hold `role:update` after the
- * pending change. Called before any update/delete that could remove it —
- * a small guard, but it stops an admin from locking everyone out of Role
- * management by accident.
- */
 async function assertRoleManagementSurvives(roleIdBeingChanged: string, willStillHaveIt: boolean) {
-  if (willStillHaveIt) return; // this role keeps the permission, nothing to check
+  if (willStillHaveIt) return;
 
   const otherRolesWithIt = await prisma.role.count({
     where: {
@@ -68,7 +62,16 @@ export async function createRole(input: CreateRoleInput) {
 }
 
 export async function listRoles(query: ListRolesQuery) {
-  const { search, status, page, limit } = query;
+  const { search, status } = query;
+
+  // Safely parse page & limit to numbers with sensible fallbacks
+  const pageParam = typeof query.page === 'string' ? parseInt(query.page, 10) : Number(query.page);
+  const limitParam = typeof query.limit === 'string' ? parseInt(query.limit, 10) : Number(query.limit);
+
+  const page = !isNaN(pageParam) && pageParam > 0 ? pageParam : 1;
+  const limit = !isNaN(limitParam) && limitParam > 0 ? limitParam : 10;
+
+  const skip = (page - 1) * limit;
 
   const where = {
     ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {}),
@@ -84,11 +87,12 @@ export async function listRoles(query: ListRolesQuery) {
             users: {
               where: { deletedAt: null }, // Only count ACTIVE users in role list
             },
+            permissions: true, // Counts total permissions assigned to each role
           },
         },
       },
       orderBy: { name: 'asc' },
-      skip: (page - 1) * limit,
+      skip,
       take: limit,
     }),
     prisma.role.count({ where }),
@@ -107,6 +111,7 @@ export async function getRoleById(id: string) {
           users: {
             where: { deletedAt: null }, // Only count ACTIVE users
           },
+          permissions: true,
         },
       },
     },
