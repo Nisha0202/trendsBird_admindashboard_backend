@@ -18,6 +18,7 @@ model Product {
   salePrice   Decimal?     @map("sale_price") @db.Decimal(12, 2)
   stock       Int?
   stockStatus StockStatus? @map("stock_status")
+  lowStockThreshold Int?         @map("low_stock_threshold")
 
   weight    Decimal? @db.Decimal(10, 3)
   active    Boolean  @default(true)

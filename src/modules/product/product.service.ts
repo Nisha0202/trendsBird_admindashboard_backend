@@ -21,8 +21,20 @@ async function uniqueProductSlug(name: string, excludeId?: string): Promise<stri
     return slug;
 }
 
-function deriveSimpleStockStatus(stock: number): StockStatus {
-    return stock > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK';
+function deriveSimpleStockStatus(
+    stock: number,
+    lowStockThreshold?: number | null
+): StockStatus {
+
+    if (stock <= 0) return 'OUT_OF_STOCK';
+
+    if (
+        lowStockThreshold != null &&
+        stock <= lowStockThreshold
+    )
+        return 'LOW_STOCK';
+
+    return 'IN_STOCK';
 }
 
 function deriveVariantStockStatus(stock: number, lowStockThreshold?: number | null): StockStatus {
@@ -88,7 +100,20 @@ export async function createProduct(input: CreateProductInput) {
                 price: input.hasVariants ? null : (input.price ?? null),
                 salePrice: input.hasVariants ? null : (input.salePrice ?? null),
                 stock: input.hasVariants ? null : (input.stock ?? null),
-                stockStatus: input.hasVariants ? null : deriveSimpleStockStatus(input.stock ?? 0),
+
+                lowStockThreshold: input.hasVariants
+                    ? null
+                    : (input.lowStockThreshold ?? null),
+
+                stockStatus: input.hasVariants
+                    ? null
+                    : deriveSimpleStockStatus(
+                        input.stock ?? 0,
+                        input.lowStockThreshold
+                    ),
+
+
+
                 weight: input.weight ?? null,
                 active: input.active,
                 featured: input.featured,
@@ -294,28 +319,80 @@ export async function updateProduct(id: string, input: UpdateProductInput) {
 
     const slug = input.name ? await uniqueProductSlug(input.name, id) : undefined;
 
-    
+
     return prisma.$transaction(async (tx) => {
-        return await tx.product.update({
-            where: { id },
-            data: {
-                ...(input.name && slug ? { name: input.name, slug: slug } : {}),
-                ...(input.shortDescription !== undefined ? { shortDescription: input.shortDescription ?? null } : {}),
-                ...(input.longDescription !== undefined ? { longDescription: input.longDescription ?? null } : {}),
-                ...(input.sku !== undefined ? { sku: input.sku ?? null } : {}),
-                ...(!product.hasVariants && input.price !== undefined ? { price: input.price ?? null } : {}),
-                ...(!product.hasVariants && input.salePrice !== undefined ? { salePrice: input.salePrice ?? null } : {}),
-                ...(!product.hasVariants && input.stock !== undefined
-                    ? { stock: input.stock ?? null, stockStatus: deriveSimpleStockStatus(input.stock) }
-                    : {}),
-                ...(input.weight !== undefined ? { weight: input.weight ?? null } : {}),
-                ...(input.active !== undefined ? { active: input.active } : {}),
-                ...(input.featured !== undefined ? { featured: input.featured } : {}),
-                ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
-                ...(input.brandId !== undefined ? { brandId: input.brandId ?? null } : {}),
+    // 1. Update the product itself
+    await tx.product.update({
+        where: { id },
+        data: {
+            ...(
+                !product.hasVariants &&
+                input.lowStockThreshold !== undefined
+                    ? {
+                        lowStockThreshold: input.lowStockThreshold ?? null,
+                    }
+                    : {}
+            ),
+
+            ...(input.name && slug ? { name: input.name, slug } : {}),
+            ...(input.shortDescription !== undefined
+                ? { shortDescription: input.shortDescription ?? null }
+                : {}),
+            ...(input.longDescription !== undefined
+                ? { longDescription: input.longDescription ?? null }
+                : {}),
+            ...(input.sku !== undefined ? { sku: input.sku ?? null } : {}),
+
+            ...(!product.hasVariants && input.price !== undefined
+                ? { price: input.price ?? null }
+                : {}),
+
+            ...(!product.hasVariants && input.salePrice !== undefined
+                ? { salePrice: input.salePrice ?? null }
+                : {}),
+
+            ...(!product.hasVariants && input.stock !== undefined
+                ? {
+                      stock: input.stock ?? null,
+                      stockStatus: deriveSimpleStockStatus(
+                          input.stock,
+                          input.lowStockThreshold ?? product.lowStockThreshold
+                      ),
+                  }
+                : {}),
+
+            ...(input.weight !== undefined ? { weight: input.weight ?? null } : {}),
+            ...(input.active !== undefined ? { active: input.active } : {}),
+            ...(input.featured !== undefined ? { featured: input.featured } : {}),
+            ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
+            ...(input.brandId !== undefined ? { brandId: input.brandId ?? null } : {}),
+        },
+    });
+
+    // 2. Update categories
+    if (input.categoryIds !== undefined) {
+        await tx.productCategory.deleteMany({
+            where: {
+                productId: id,
             },
         });
+
+        if (input.categoryIds.length > 0) {
+            await tx.productCategory.createMany({
+                data: input.categoryIds.map((categoryId) => ({
+                    productId: id,
+                    categoryId,
+                })),
+            });
+        }
+    }
+
+    // 3. Return the updated product with categories
+    return await tx.product.findUnique({
+        where: { id },
+        include: fullProductInclude,
     });
+});
 }
 
 export async function deleteProduct(id: string) {

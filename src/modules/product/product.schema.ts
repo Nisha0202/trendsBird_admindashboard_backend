@@ -33,6 +33,7 @@ export const createProductSchema = z.object({
   price: z.number().positive().optional(),
   salePrice: z.number().positive().optional(),
   stock: z.number().int().min(0).optional(),
+  lowStockThreshold: z.number().int().min(0).optional(),
 
   weight: z.number().positive().optional(),
   active: z.boolean().default(true),
@@ -76,6 +77,7 @@ export const updateProductSchema = z.object({
   price: z.number().positive().optional(),
   salePrice: z.number().positive().optional(),
   stock: z.number().int().min(0).optional(),
+  lowStockThreshold: z.number().int().min(0).optional(),
   weight: z.number().positive().optional(),
   active: z.boolean().optional(),
   featured: z.boolean().optional(),
