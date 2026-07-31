@@ -387,6 +387,27 @@ export async function updateProduct(id: string, input: UpdateProductInput) {
         }
     }
 
+     // 3. Update media
+    if (input.media !== undefined) {
+
+    await tx.productMedia.deleteMany({
+        where: {
+            productId: id,
+        },
+    });
+
+    await tx.productMedia.createMany({
+        data: input.media.map((m, index) => ({
+            mediaId: m.mediaId,
+            productId: id,
+            isThumbnail: m.isThumbnail,
+            isGallery: m.isGallery,
+            sortOrder: index,
+        })),
+    });
+
+}
+
     // 3. Return the updated product with categories
     return await tx.product.findUnique({
         where: { id },

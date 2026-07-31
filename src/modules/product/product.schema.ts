@@ -84,6 +84,7 @@ export const updateProductSchema = z.object({
   sortOrder: z.number().int().optional(),
   brandId: z.string().uuid().nullable().optional(),
   categoryIds: z.array(z.string().uuid()).optional(),
+  media: z.array(mediaAttachmentSchema).optional(),
 });
 
 export const addVariantSchema = variantInputSchema;
