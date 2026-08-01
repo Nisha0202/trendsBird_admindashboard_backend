@@ -8,7 +8,13 @@ import {
 function toSlug(text: string): string {
     return slugify(text, { lower: true, strict: true });
 }
-
+const attributeInclude = {
+    values: {
+        include: {
+            referenceMedia: true,
+        },
+    },
+};
 export async function createAttribute(input: CreateAttributeInput) {
     const existing = await prisma.attribute.findUnique({ where: { name: input.name } });
     if (existing) throw ApiError.conflict(`Attribute "${input.name}" already exists`);
@@ -38,18 +44,27 @@ export async function createAttribute(input: CreateAttributeInput) {
             }
         }
 
-        return tx.attribute.findUnique({ where: { id: attribute.id }, include: { values: true } });
+        return tx.attribute.findUnique({
+            where: { id: attribute.id },
+            include: attributeInclude,
+        });
     });
 }
 
 export async function listAttributes() {
-    return prisma.attribute.findMany({ include: { values: true }, orderBy: { name: 'asc' } });
+    return prisma.attribute.findMany({
+        include: attributeInclude,
+        orderBy: {
+            name: "asc",
+        },
+    });
 }
 
 export async function getAttributeById(id: string) {
-    const attribute = await prisma.attribute.findUnique({ where: { id }, include: { values: true } });
-    if (!attribute) throw ApiError.notFound('Attribute not found');
-    return attribute;
+    return prisma.attribute.findUnique({
+        where: { id },
+        include: attributeInclude,
+    });
 }
 
 export async function updateAttribute(id: string, input: UpdateAttributeInput) {
@@ -67,7 +82,7 @@ export async function updateAttribute(id: string, input: UpdateAttributeInput) {
             ...(input.name ? { name: input.name, slug: toSlug(input.name) } : {}),
             ...(input.type ? { type: input.type } : {}),
         },
-        include: { values: true },
+        include: attributeInclude,
     });
 }
 
@@ -88,7 +103,9 @@ export async function addValue(attributeId: string, input: CreateValueInput) {
             slug: valueSlug,
             ...(input.referenceValue ? { referenceValue: input.referenceValue } : {}),
             ...(input.referenceMediaId ? { referenceMediaId: input.referenceMediaId } : {}),
-        },
+        },  include: {
+        referenceMedia: true,
+    },
     });
 }
 
@@ -109,39 +126,41 @@ export async function updateValue(attributeId: string, valueId: string, input: U
             ...(input.value ? { value: input.value, slug: toSlug(input.value) } : {}),
             ...(input.referenceValue !== undefined ? { referenceValue: input.referenceValue } : {}),
             ...(input.referenceMediaId !== undefined ? { referenceMediaId: input.referenceMediaId } : {}),
-        },
+        },   include: {
+        referenceMedia: true,
+    },
     });
 }
 
 
 
 export async function deleteAttribute(id: string) {
-  const attribute = await prisma.attribute.findUnique({
-    where: { id },
-    include: { values: { include: { _count: { select: { variantValues: true } } } } },
-  });
-  if (!attribute) throw ApiError.notFound('Attribute not found');
+    const attribute = await prisma.attribute.findUnique({
+        where: { id },
+        include: { values: { include: { _count: { select: { variantValues: true } } } } },
+    });
+    if (!attribute) throw ApiError.notFound('Attribute not found');
 
-  const usedByVariant = attribute.values.some((v) => v._count.variantValues > 0);
-  if (usedByVariant) {
-    throw ApiError.conflict('Cannot delete: attribute is used by one or more product variants');
-  }
+    const usedByVariant = attribute.values.some((v) => v._count.variantValues > 0);
+    if (usedByVariant) {
+        throw ApiError.conflict('Cannot delete: attribute is used by one or more product variants');
+    }
 
-  await prisma.attribute.delete({ where: { id } });
-  return { deleted: true };
+    await prisma.attribute.delete({ where: { id } });
+    return { deleted: true };
 }
 
 export async function deleteValue(attributeId: string, valueId: string) {
-  const value = await prisma.attributeValue.findFirst({
-    where: { id: valueId, attributeId },
-    include: { _count: { select: { variantValues: true } } },
-  });
-  if (!value) throw ApiError.notFound('Attribute value not found');
+    const value = await prisma.attributeValue.findFirst({
+        where: { id: valueId, attributeId },
+        include: { _count: { select: { variantValues: true } } },
+    });
+    if (!value) throw ApiError.notFound('Attribute value not found');
 
-  if (value._count.variantValues > 0) {
-    throw ApiError.conflict('Cannot delete: value is used by one or more product variants');
-  }
+    if (value._count.variantValues > 0) {
+        throw ApiError.conflict('Cannot delete: value is used by one or more product variants');
+    }
 
-  await prisma.attributeValue.delete({ where: { id: valueId } });
-  return { deleted: true };
+    await prisma.attributeValue.delete({ where: { id: valueId } });
+    return { deleted: true };
 }
