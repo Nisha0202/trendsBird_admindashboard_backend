@@ -9,6 +9,17 @@ E-commerce Admin REST API with JWT authentication, RBAC, product variants, a sha
 
 **Tech stack:** Node.js, Express, TypeScript, Prisma, PostgreSQL (hosted on Supabase).
 
+## 📚 Table of Contents
+
+- Project Overview
+- Technologies Used
+- Installation & Setup
+- Environment Variables
+- Seed Credentials
+- API Integration
+- Module Status
+- Design Decisions
+- Known Issues
 ---
 
 ## 2. Technologies Used
@@ -113,7 +124,156 @@ The Catalog User holds every catalog permission (Media, Category, Brand, Attribu
 
 ---
 
-## 6. Module Status
+## 6. Backend API Integration
+
+The frontend communicates with the backend through a RESTful API.
+
+### Base URL
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+```
+
+> Replace the value above with your deployed backend URL in production.
+
+### Authentication
+
+All protected endpoints require the following header:
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+**Public Endpoints**
+
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+
+---
+
+## 🔐 Authentication
+
+| Method | Endpoint | Purpose |
+| :----: | -------- | ------- |
+| **POST** | `/auth/login` | User login |
+| **GET** | `/auth/me` | Restore authenticated session |
+| **POST** | `/auth/refresh` | Refresh expired access token |
+| **POST** | `/auth/logout` | Logout current user |
+
+---
+
+## 🔑 Permission Groups
+
+| Method | Endpoint | Purpose |
+| :----: | -------- | ------- |
+| **GET** | `/permissions/groups` | Get permission groups |
+| **POST** | `/permissions/groups` | Create permission group |
+| **PATCH** | `/permissions/groups/:id` | Update permission group |
+
+---
+
+## 👥 Roles
+
+| Method | Endpoint | Purpose |
+| :----: | -------- | ------- |
+| **GET** | `/roles` | Get all roles |
+| **GET** | `/roles/:id` | Get a single role |
+| **POST** | `/roles` | Create role |
+| **PATCH** | `/roles/:id` | Update role |
+| **DELETE** | `/roles/:id` | Delete role |
+
+---
+
+## 👤 Users
+
+| Method | Endpoint | Purpose |
+| :----: | -------- | ------- |
+| **GET** | `/users` | Get all users |
+| **POST** | `/users` | Create user |
+| **PATCH** | `/users/:id` | Update user |
+| **DELETE** | `/users/:id` | Delete user |
+
+---
+
+## 🖼️ Media
+
+| Method | Endpoint | Purpose |
+| :----: | -------- | ------- |
+| **GET** | `/media` | Get media library |
+| **POST** | `/media/upload` | Upload media |
+| **PATCH** | `/media/:id` | Update media |
+| **DELETE** | `/media/:id` | Delete media |
+
+---
+
+## 📂 Categories
+
+| Method | Endpoint | Purpose |
+| :----: | -------- | ------- |
+| **GET** | `/categories/tree` | Get category tree |
+| **POST** | `/categories` | Create category |
+| **PATCH** | `/categories/:id` | Update category |
+| **DELETE** | `/categories/:id` | Delete category |
+
+---
+
+## 🏷️ Brands
+
+| Method | Endpoint | Purpose |
+| :----: | -------- | ------- |
+| **GET** | `/brands` | Get all brands |
+| **POST** | `/brands` | Create brand |
+| **PATCH** | `/brands/:id` | Update brand |
+| **DELETE** | `/brands/:id` | Delete brand |
+
+---
+
+## 🎨 Attributes
+
+| Method | Endpoint | Purpose |
+| :----: | -------- | ------- |
+| **GET** | `/attributes` | Get attributes |
+| **POST** | `/attributes` | Create attribute |
+| **DELETE** | `/attributes/:id` | Delete attribute |
+| **POST** | `/attributes/:id/values` | Add attribute value |
+| **PATCH** | `/attributes/:id/values/:valueId` | Update attribute value |
+| **DELETE** | `/attributes/:id/values/:valueId` | Delete attribute value |
+
+---
+
+## 📦 Products
+
+| Method | Endpoint | Purpose |
+| :----: | -------- | ------- |
+| **GET** | `/products` | Get products |
+| **GET** | `/products/:id` | Get product details |
+| **POST** | `/products` | Create product |
+| **PATCH** | `/products/:id` | Update product |
+| **DELETE** | `/products/:id` | Delete product |
+| **POST** | `/products/generate-combinations` | Generate product variants |
+| **POST** | `/products/:id/variants` | Add variant |
+| **DELETE** | `/products/:id/variants/:variantId` | Delete variant |
+| **POST** | `/products/:id/media` | Attach media |
+| **DELETE** | `/products/:id/media/:mediaAttachmentId` | Remove media |
+| **PATCH** | `/products/:id/media/reorder` | Reorder product gallery |
+
+---
+
+## ⚙️ API Features
+
+- 🔐 JWT Authentication
+- 🔄 Automatic Access Token Refresh
+- ♻️ Automatic Request Retry after Token Refresh
+- 🚫 Global Error Handling
+- 🛡️ Protected Routes
+- 📁 Multipart File Upload Support
+- 🧩 Atomic Product Creation (Variants, Categories & Media)
+- ⚡ React Query for Caching & Data Synchronization
+
+---
+
+## 7. Module Status
 
 | Module | Status |
 |---|---|
@@ -131,7 +291,7 @@ Not implemented (bonus items, explicitly out of scope for this pass): rate limit
 
 ---
 
-## 7. Design Decisions & Known Issues
+## 8. Design Decisions
 
 **JWT access + opaque refresh token, not JWT + JWT.** Access tokens are short-lived JWTs (15 min) carrying only `{ sub: userId }` — deliberately minimal, no role or permissions baked in. Refresh tokens are long-lived (30 days) opaque random strings, stored **hashed** in the database rather than as a second signed JWT. This means revoking a specific session is a real database operation (flip `revoked = true`), not something you have to fake with a blocklist of JWT ids.
 
@@ -158,7 +318,7 @@ Not implemented (bonus items, explicitly out of scope for this pass): rate limit
 ```
 `details` (an array of `{ field, message }`) appears only on `422` validation failures. No response — success or error — ever includes a stack trace, a raw database error, or an internal file path.
 
-**Known issues:**
+## 8. Known issues:
 - No audit log of who changed what.
 - Docker Compose is not set up; local development assumes a cloud Supabase instance reachable over the network.
 
