@@ -4,7 +4,8 @@
 
 E-commerce Admin REST API with JWT authentication, RBAC, product variants, a shared media library, categories, brands, attributes, and products. Admin-only — no storefront, no customer-facing side.
 
-# Link: https://dashboard-backend-six-zeta.vercel.app/health 
+## Link: https://dashboard-backend-six-zeta.vercel.app/health 
+## Frontend Repo: https://github.com/Nisha0202/trendsBird_admindashboard_frontend
 
 **Tech stack:** Node.js, Express, TypeScript, Prisma, PostgreSQL (hosted on Supabase).
 
