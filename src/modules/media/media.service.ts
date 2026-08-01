@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { v4 as uuid } from 'uuid';
+import { randomUUID } from 'crypto';
 import { prisma } from '../../config/prisma';
 import { supabaseAdmin } from '../../config/supabase';
 import { env } from '../../config/env';
@@ -24,7 +24,7 @@ async function deleteFromStorage(paths: string[]) {
 
 export async function uploadSingleFile(file: Express.Multer.File, uploadedById: string) {
   const isImage = file.mimetype.startsWith('image/');
-  const id = uuid();
+  const id = randomUUID();
   const ext = file.originalname.split('.').pop() ?? 'bin';
   const originalPath = `originals/${id}.${ext}`;
 
